@@ -1,7 +1,4 @@
 #include <iostream>
-#include <array>
-#include <chrono>
-#include <thread>
 
 #include <SFML/Graphics.hpp>
 
@@ -124,13 +121,8 @@ int main() {
         avion.setRotation(angle);
 
         window.clear();
-
-        window.draw(avion); // Afișăm avionul încărcat pe ecran
-        window.draw(tip_avion); // Afișăm tipul avionului
-
         window.display();
     }
 
-    std::cout << "Programul a terminat execuția\n";
     return 0;
 }
