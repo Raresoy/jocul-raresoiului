@@ -46,7 +46,7 @@ public:
     void lovit(int damage = 1) {
         if (cooldown == 0 && viata > 0) {
             viata -= damage;
-            cooldown = 3;
+            cooldown = 3;//jucatorul primeste invulnerabilitate pentru 3 secunde pentru a avea timp sa se repozitioneze
         }
     }
     void adaugaItem(const std::string& item) {//doua iteme de viata si invulnerabilitate
@@ -129,9 +129,82 @@ public:
         return os;
     }
 };
+    
+class Inamic{
+private:
+    Harta pozitie;
+    int cooldown;
+    TipInamic tip;//vor exista mai multe tipuri de inamici ca sa nu se plictiseasca jucatorul luptandu-se cu un singur fel de inamic
+public://random se misca random, chaser fuge dupa jucator, iar sniper sta pe loc si trage lovituri puternice si precise
+    Inamic(float x, float y, TipInamic tip = RANDOM) : pozitie(x, y), cooldown(0), tip(tip) {}
+    void actualizeaza(const Harta& jucatorPoz) {
+        float dx = 0, dy = 0;
+        if (tip == RANDOM) {
+            dx = ((rand() % 3) - 1) * 0.5f;
+            dy = ((rand() % 3) - 1) * 0.5f;
+        } 
+        else if (tip == CHASER) {
+            dx = jucatorPoz.getX() - pozitie.getX();
+            dy = jucatorPoz.getY() - pozitie.getY();
+            float dist = std::sqrt(dx*dx + dy*dy);
+            dx = (dist > 0) ? dx / dist * 0.5f : 0;
+            dy = (dist > 0) ? dy / dist * 0.5f : 0;
+        } 
+        else if (tip == SNIPER) {}
+        pozitie.miscari(dx, dy);
+        if (cooldown > 0) cooldown--;
+        }
+    bool poateTrage() {
+        if (cooldown == 0) {
+            cooldown = (tip == SNIPER ? 2 : 4);
+            return true;
+        }
+        return false;
+    }
+    Proiectil trageLaJucator(const Harta& tinta) {//inamicii trag doar spre jucator
+        float dx = tinta.getX() - pozitie.getX();
+        float dy = tinta.getY() - pozitie.getY();
+        float dist = std::sqrt(dx * dx + dy * dy);
+        return Proiectil(pozitie.getX(), pozitie.getY(), dx / dist, dy / dist, (tip == SNIPER ? "exploziv" : "normal"));
+    }
+    friend std::ostream& operator<<(std::ostream& os, const Inamic& i) {
+        std::string tipStr = (i.tip == RANDOM) ? "Random" : (i.tip == CHASER ? "Chaser" : "Sniper");
+        os << "Inamic [" << tipStr << "] la " << i.pozitie;
+        return os;
+    }
+};
             
 int main() {
-     
+    srand(time(0));
+    Jucator jucator(50, 50);
+    std::vector<Inamic> inamici = { Inamic(10, 10), Inamic(90, 90) };
+    std::vector<Proiectil> gloante;
+    for (int t = 0; t < 20; ++t) {
+        std::cout << "\n--- Timp " << t << " ---\n";
+        for (auto& i : inamici) {
+            i.actualizeaza(jucator.getPozitie());
+            if (i.poateTrage()) {
+                gloante.push_back(i.trageLaJucator(jucator.getPozitie()));
+            }
+            std::cout << i << "\n";
+        }
+        for (auto& p : gloante) {
+            p.actualizeaza();
+            if (p.verificaLovitura(jucator)) {
+                jucator.lovit();
+            }
+            std::cout << p << "\n";
+        }
+
+        jucator.tick();
+        std::cout << jucator << "\n";
+
+        if (!jucator.eViu()) {
+            std::cout << "Jucatorul a fost învins!\n";
+            break;
+        }
+    }
+    return 0;
 }
 
 
