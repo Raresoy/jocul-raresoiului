@@ -5,6 +5,8 @@
 #include <fstream>
 #include <sstream>
 
+enum TipInamic { RANDOM, CHASER, SNIPER };
+
 class Harta{ //reprezinta un reper cartezian xoy pe care il vom folosi pentru a misca entitatile pe harta
 private:
     float x, y;
@@ -24,6 +26,7 @@ public:
         return os;
     }
 };
+    
 
 class Jucator{
 private:
@@ -80,17 +83,55 @@ public:
                 out << item << " ";
             out << "\n";
             out.close();
-        } 
-        else {
+        } else {
             std::cerr << "[Eroare: Nu s-a putut scrie fisierul jucator_final.txt]\n";
         }
         inventar.clear();
         std::cout << "[Jucator distrus: salvare finala completata.]\n";
     }
+    
+};
+    
+    
+
+class Proiectil{
+private:
+    Harta pozitie;
+    float dx, dy;
+    bool activ;
+    std::string tip;
+    int damage;
+public:
+    Proiectil(float x, float y, float dx, float dy, std::string tip = "normal"): pozitie(x, y), dx(dx), dy(dy), activ(true), tip(tip) {
+        damage = (tip == "exploziv" ? 2 : 1);
+    }
+    void actualizeaza() {//misca proiectilul si il dezactiveaza daca iese din bounds
+        if (!activ) return;
+        pozitie.miscari(dx, dy);
+        if (pozitie.getX() < 0 || pozitie.getX() > 100 || pozitie.getY() < 0 || pozitie.getY() > 100) {
+            activ = false;
+        }
+    }
+    bool verificaLovitura(Jucator& tinta) {//verifica un hit
+        if (!activ) return false;
+        if (pozitie.distanta(tinta.getPozitie()) < 1.5f) {
+            tinta.lovit(damage);
+            activ = false;
+            return true;
+        }
+        return false;
+    }
+    bool esteActiv() const {
+        return activ;
+    }
+    friend std::ostream& operator<<(std::ostream& os, const Proiectil& p) {
+        os << "Proiectil (" << p.tip << ") la " << p.pozitie << (p.activ ? " [activ]" : " [inactiv]");
+        return os;
+    }
 };
             
 int main() {
-    return 0;
+     
 }
 
 
