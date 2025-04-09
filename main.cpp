@@ -34,9 +34,11 @@ private:
     int viata;
     int cooldown;//timpul in care jucatorul e invulnerabil  
     int scor;
+    int nivel;
+    int experienta;
     std::vector<std::string> inventar;
 public:
-    Jucator(float x, float y, int viata = 5) : pozitie(x, y), viata(viata), cooldown(0), scor(0) {}
+    Jucator(float x, float y, int viata = 5) : pozitie(x, y), viata(viata), cooldown(0), scor(0), nivel(1), experienta(0) {}
     void muta(float dx, float dy) {//se misca jucatorul pe harta
         pozitie.miscari(dx, dy);
     }
@@ -48,6 +50,17 @@ public:
             viata -= damage;
             cooldown = 3;//jucatorul primeste invulnerabilitate pentru 3 secunde pentru a avea timp sa se repozitioneze
         }
+    }
+    void castigaExperienta(int xp){
+        experienta += xp;
+        while(experienta >= xpNecesarPentruNivel()){
+            experienta -= xpNecesarPentruNivel();
+            nivel++;
+            viata++;
+        }
+    }
+    int xpNecesarPentruNivel() const{
+        return nivel * 10;
     }
     void adaugaItem(const std::string& item) {//doua iteme de viata si invulnerabilitate
         inventar.push_back(item);
@@ -61,12 +74,15 @@ public:
     bool eViu() const {//self explanatory
         return viata > 0;
     }
-    void scorPlus(int s) { scor += s; }
+    void scorPlus(int s) { 
+        scor += s; 
+        castigaExperienta(s);
+    }
     const Harta& getPozitie() const {
         return pozitie;
     }
     friend std::ostream& operator<<(std::ostream& os, const Jucator& j) {
-        os << "Jucator la " << j.pozitie << " | Viata: " << j.viata << " | Scor: " << j.scor << " | Inventar: [ ";
+        os << "Jucator la " << j.pozitie << " | Viata: " << j.viata << " | Scor: " << j.scor << " | XP: " << j.experienta << " | Inventar: [ ";
         for (auto& item : j.inventar) os << item << " ";
         os << "]" << (j.cooldown ? " (invincibil)" : "");
         return os;
@@ -175,36 +191,51 @@ public://random se misca random, chaser fuge dupa jucator, iar sniper sta pe loc
 };
             
 int main() {
-    srand(time(0));
+    srand(static_cast<unsigned int>(time(0)));
     Jucator jucator(50, 50);
-    std::vector<Inamic> inamici = { Inamic(10, 10), Inamic(90, 90) };
-    std::vector<Proiectil> gloante;
-    for (int t = 0; t < 20; ++t) {
-        std::cout << "\n--- Timp " << t << " ---\n";
+    std::vector<Inamic> inamici = {
+        Inamic(10, 10, RANDOM),
+        Inamic(90, 90, CHASER),
+        Inamic(50, 0, SNIPER)
+    };
+    std::vector<Proiectil> proiectile;
+    std::cout << "=== Incepe runda ===\n";
+    for (int t = 0; t < 30; ++t) {
+        std::cout << "\n--- Tura " << t << " ---\n";
+        if (rand() % 5 == 0) {
+            jucator.dodge(); 
+        } 
+        else {
+            float dx = ((rand() % 3) - 1) * 1.5f;
+            float dy = ((rand() % 3) - 1) * 1.5f;
+            jucator.muta(dx, dy);
+        }
         for (auto& i : inamici) {
             i.actualizeaza(jucator.getPozitie());
             if (i.poateTrage()) {
-                gloante.push_back(i.trageLaJucator(jucator.getPozitie()));
+                proiectile.push_back(i.trageLaJucator(jucator.getPozitie()));
             }
             std::cout << i << "\n";
         }
-        for (auto& p : gloante) {
+        for (auto& p : proiectile) {
             p.actualizeaza();
             if (p.verificaLovitura(jucator)) {
-                jucator.lovit();
+                std::cout << "[Lovitura directa!]\n";
+                jucator.castigaExperienta(10); 
             }
             std::cout << p << "\n";
         }
-
         jucator.tick();
         std::cout << jucator << "\n";
-
         if (!jucator.eViu()) {
-            std::cout << "Jucatorul a fost învins!\n";
+            std::cout << "\n💀 Jucatorul a fost invins!\n";
             break;
         }
+        jucator.castigaExperienta(5);
     }
+    std::cout << "\n=== Runda terminata ===\n";
     return 0;
 }
+
 
 
