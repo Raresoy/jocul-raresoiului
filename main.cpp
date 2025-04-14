@@ -36,14 +36,17 @@ private:
     int scor;
     int nivel;
     int experienta;
+    int reloadTime;
+    const int reloadMax = 3;
     std::vector<std::string> inventar;
 public:
-    Jucator(float x, float y, int viata = 5) : pozitie(x, y), viata(viata), cooldown(0), scor(0), nivel(1), experienta(0) {}
+    Jucator(float x, float y, int viata = 5) : pozitie(x, y), viata(viata), cooldown(0), scor(0), nivel(1), experienta(0), reloadTime(0) {}
     void muta(float dx, float dy) {//se misca jucatorul pe harta
         pozitie.miscari(dx, dy);
     }
     void tick() {
         if (cooldown > 0) cooldown--;//scade durata de invulnerabilitate
+        if (reloadTime > 0) reloadTime--;//reload
     }
     void lovit(int damage = 1) {
         if (cooldown == 0 && viata > 0) {
@@ -58,6 +61,15 @@ public:
             nivel++;
             viata++;
         }
+    }
+    bool poateTrage()
+    {
+        if(reloadTime == 0)
+        {
+            reloadTime = reloadMax;
+            return true;
+        }
+        return false;
     }
     int xpNecesarPentruNivel() const{
         return nivel * 10;
@@ -212,8 +224,15 @@ int main() {
         }
         for (auto& i : inamici) {
             i.actualizeaza(jucator.getPozitie());
-            if (i.poateTrage()) {
-                proiectile.push_back(i.trageLaJucator(jucator.getPozitie()));
+            if (jucator.poateTrage()) {
+                float dx = ((rand() % 3) - 1);
+                float dy = ((rand() % 3) - 1);
+                if (dx != 0 || dy != 0)
+                    proiectile.push_back(Proiectil(jucator.getPozitie().getX(), jucator.getPozitie().getY(), dx, dy, "normal"));
+                std::cout << "[Jucatorul a tras un proiectil]\n";
+            } 
+            else {
+                std::cout << "[Jucatorul reincarca...]\n";
             }
             std::cout << i << "\n";
         }
