@@ -45,7 +45,6 @@ private:
     int reloadTime;
     const int reloadMax = 3;
     int rapidFire = 0;
-    int multiShot = 0;
     int comboKill = 0;
     int comboTimer = 0;
     std::vector<std::string> inventar;
@@ -60,7 +59,6 @@ public:
         if (cooldown > 0) cooldown--;//scade durata de invulnerabilitate
         if (reloadTime > 0) reloadTime--;//reload
         if (rapidFire > 0) rapidFire--;
-        if (multiShot > 0) multiShot--;
         if (armaTimer > 0) {
             armaTimer--;
             if (armaTimer == 0){
@@ -103,7 +101,6 @@ public:
         if (item == "Viata") viata++;
         else if (item == "Scut") cooldown += 3;
         else if (item == "RapidFire") rapidFire = 10;
-        else if (item == "MultiShot") multiShot = 10;
         else if (item == "Shotgun"){
             armaCurenta = SHOTGUN;
             armaTimer = 10;
@@ -136,10 +133,6 @@ public:
         }
         else if (armaCurenta == BAZOOKA){
             gloante.emplace_back(pozitie.getX(), pozitie.getY(), 0.7f, 0, true);
-        }
-        if (multiShot > 0){
-            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.3f, false);
-            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, -0.3f, false);
         }
         return gloante;
     }
@@ -181,53 +174,66 @@ public:
 };
 
 class Proiectil {
-    private:
-        Pozitie pozitie;
-        float dx, dy;
-        bool exploziv;
-    public:
-        Proiectil(float x, float y, float dx = 0, float dy = -1.0f, bool exploziv = false) : pozitie(x, y), dx(dx), dy(dy), exploziv(exploziv) {}
-        void actualizeaza() {
-            pozitie.miscari(dx * 2.5f, dy * 2.5f);
+private:
+    Pozitie pozitie;
+    float dx, dy;
+    bool exploziv;
+public:
+    Proiectil(float x, float y, float dx = 0, float dy = -1.0f, bool exploziv = false) : pozitie(x, y), dx(dx), dy(dy), exploziv(exploziv) {}
+    Proiectil(const Proiectil& other) : pozitie(other.pozitie), dx(other.dx), dy(other.dy), exploziv(other.exploziv) {
+        std::cout << "[Proiectil copiat]\n";
+    }
+    Proiectil& operator=(const Proiectil& other){
+        if (this != &other){
+            pozitie = other.pozitie;
+            dx = other.dx;
+            dy = other.dy;
+            exploziv = other.exploziv;
         }
-        bool verificaLovitura(Jucator& tinta) {
-            float dist = pozitie.distanta(tinta.getPozitie());
-            return (dist < 5.0f);
-        }
-        Pozitie getPozitie() const {
-            return pozitie;
-        }
-        bool esteExploziv() const { return exploziv; }
-        friend std::ostream& operator<<(std::ostream& os, const Proiectil& p) {
-            os << "Proiectil la " << p.pozitie;
-            return os;
-        }
-        ~Proiectil(){
-        }
-    };
+        std::cout << "[Proiectil asignat]\n";
+        return *this;
+    }
+    void actualizeaza() {
+        pozitie.miscari(dx * 2.5f, dy * 2.5f);
+    }
+    bool verificaLovitura(Jucator& tinta) {
+        float dist = pozitie.distanta(tinta.getPozitie());
+        return (dist < 5.0f);
+    }
+    Pozitie getPozitie() const {
+        return pozitie;
+    }
+    bool esteExploziv() const { return exploziv; }
+    friend std::ostream& operator<<(std::ostream& os, const Proiectil& p) {
+        os << "Proiectil la " << p.pozitie;
+        return os;
+    }
+    ~Proiectil(){
+    }
+};
 
-    class Powerup {
-        private:
-            Pozitie pozitie;
-            std::string tip;//"Viata", "RapidFire", "Scut", "MultiShot", "Bazooka", "Shotgun"
-        public:
-            Powerup(float x, float y, const std::string& tip) : pozitie(x, y), tip(tip) {}
-            const Pozitie& getPozitie() const { return pozitie; }
-            const std::string& getTip() const { return tip; }
-            bool verificaColectare(Jucator& jucator) {
-                if (pozitie.distanta(jucator.getPozitie()) < 2.0f) {
-                    jucator.adaugaItem(tip);
-                    return true;
-                }
-                return false;
-            }
-            friend std::ostream& operator<<(std::ostream& os, const Powerup& p) {
-                os << "Powerup [" << p.tip << "] la " << p.pozitie;
-                return os;
-            }
-            ~Powerup(){
-            }
-        };
+class Powerup {
+private:
+    Pozitie pozitie;
+    std::string tip;//"Viata", "RapidFire", "Scut", "MultiShot", "Bazooka", "Shotgun"
+public:
+    Powerup(float x, float y, const std::string& tip) : pozitie(x, y), tip(tip) {}
+    const Pozitie& getPozitie() const { return pozitie; }
+    const std::string& getTip() const { return tip; }
+    bool verificaColectare(Jucator& jucator) {
+        if (pozitie.distanta(jucator.getPozitie()) < 2.0f) {
+            jucator.adaugaItem(tip);
+            return true;
+        }
+        return false;
+    }
+    friend std::ostream& operator<<(std::ostream& os, const Powerup& p) {
+        os << "Powerup [" << p.tip << "] la " << p.pozitie;
+        return os;
+    }
+    ~Powerup(){
+    }
+};
     
 class Inamic{
 private:
@@ -387,57 +393,141 @@ public:
         return os;
     }
 };
-          
-int main() {
-    srand(static_cast<unsigned int>(time(0)));
-    Jucator jucator(50, 50);
-    std::vector<Inamic> inamici = {
-        Inamic(10, 10, RANDOM),
-        Inamic(90, 90, CHASER),
-        Inamic(50, 0, SNIPER)
-    };
-    std::vector<Proiectil> proiectile;
-    std::cout << "=== Incepe runda ===\n";
-    for (int t = 0; t < 30; ++t) {
-        std::cout << "\n--- Tura " << t << " ---\n";
-        if (rand() % 5 == 0) {
-            jucator.dodge(); 
-        } 
-        else {
-            float dx = ((rand() % 3) - 1) * 1.5f;
-            float dy = ((rand() % 3) - 1) * 1.5f;
-            jucator.muta(dx, dy);
+
+class Run{
+private:
+    Jucator jucator;
+    std::vector<Inamic> inamici;
+    std::vector<Proiectil> proiectileJucator;
+    std::vector<Proiectil> proiectileInamici;
+    std::vector<Powerup> powerups;
+    Boss* boss;
+    int wave;
+    int tura;
+    bool jocActiv;
+public:
+    Run() : jucator(50, 90), boss(nullptr), wave(1), tura(0), jocActiv(true) {
+        srand(static_cast<unsigned>(time(0)));
+        spawnWave();
+    }
+    void spawnWave() {
+        int nrInamici = 5 + wave; // mai multi inamici pe masura ce avansezi
+        for (int i = 0; i < nrInamici; ++i) {
+            TipInamic tip = static_cast<TipInamic>(rand() % 3);
+            float x = rand() % 100;
+            float y = rand() % 100;
+            inamici.emplace_back(x, y, tip);
+        }
+        std::cout << "[Wave " << wave << " incepe cu " << nrInamici << " inamici!]\n";
+    }
+    void spawnBoss() {
+        boss = new Boss(50, 10);
+        std::cout << "[BOSS APARUT!]\n";
+    }
+    void spawnPowerup(float x, float y) {
+        std::vector<std::string> tipuri = { "Viata", "RapidFire", "Scut", "Shotgun", "Bazooka" };
+        std::string ales = tipuri[rand() % tipuri.size()];
+        powerups.emplace_back(x, y, ales);
+    }
+    void inputPlayer() {
+        char comanda;
+        std::cout << "Comanda (w/a/s/d pentru miscare, f pentru foc, e pentru dodge): ";
+        std::cin >> comanda;
+        if (comanda == 'w') jucator.muta(0, -3);
+        else if (comanda == 's') jucator.muta(0, 3);
+        else if (comanda == 'a') jucator.muta(-3, 0);
+        else if (comanda == 'd') jucator.muta(3, 0);
+        else if (comanda == 'e') jucator.dodge();
+        else if (comanda == 'f') {
+            if (jucator.poateTrage()) {
+                auto gl = jucator.creeazaProiectile();
+                proiectileJucator.insert(proiectileJucator.end(), gl.begin(), gl.end());
+            }
+        }
+    }
+    void actualizeaza() {
+        jucator.tick();
+        tura++;
+        for (auto& p : proiectileJucator)
+            p.actualizeaza();
+        for (auto& p : proiectileInamici)
+            p.actualizeaza();
+        for (auto& i : inamici)
+            i.actualizeaza(jucator.getPozitie());
+        if (boss)
+            boss->actualizeaza(jucator.getPozitie());
+        for (auto& p : powerups)
+            p.verificaColectare(jucator);
+        for (auto& p : proiectileJucator) {
+            for (auto& i : inamici) {
+                if (!i.esteMort() && p.getPozitie().distanta(i.getPozitie()) < 5.0f) {
+                    i.primesteDamage(p.esteExploziv() ? 3 : 1);
+                    jucator.scorPlus(1);
+                    if (rand() % 10 == 0)
+                        spawnPowerup(i.getPozitie().getX(), i.getPozitie().getY());
+                }
+            }
+            if (boss && p.getPozitie().distanta(boss->getPozitie()) < 5.0f) {
+                boss->primesteDamage(p.esteExploziv() ? 5 : 2);
+            }
+        }
+        proiectileJucator.erase(std::remove_if(proiectileJucator.begin(), proiectileJucator.end(), [](const Proiectil& p) { return p.getPozitie().getX() < 0 || p.getPozitie().getX() > 100 || p.getPozitie().getY() < 0 || p.getPozitie().getY() > 100; }), proiectileJucator.end());
+        proiectileInamici.erase(std::remove_if(proiectileInamici.begin(), proiectileInamici.end(), [](const Proiectil& p) { return p.getPozitie().getX() < 0 || p.getPozitie().getX() > 100 || p.getPozitie().getY() < 0 || p.getPozitie().getY() > 100; }), proiectileInamici.end());
+        for (auto& p : proiectileInamici) {
+            if (p.verificaLovitura(jucator)) {
+                jucator.lovit(p.esteExploziv() ? 2 : 1);
+            }
         }
         for (auto& i : inamici) {
-            i.actualizeaza(jucator.getPozitie());
-            if (jucator.poateTrage()) {
-                float dx = ((rand() % 3) - 1);
-                float dy = ((rand() % 3) - 1);
-                if (dx != 0 || dy != 0)
-                    proiectile.push_back(Proiectil(jucator.getPozitie().getX(), jucator.getPozitie().getY(), dx, dy, "normal"));
-                std::cout << "[Jucatorul a tras un proiectil]\n";
-            } 
-            else {
-                std::cout << "[Jucatorul reincarca...]\n";
+            if (i.poateTrage()) {
+                auto p = i.trageLaJucator(jucator.getPozitie());
+                proiectileInamici.push_back(p);
             }
-            std::cout << i << "\n";
         }
-        for (auto& p : proiectile) {
-            p.actualizeaza();
-            if (p.verificaLovitura(jucator)) {
-                std::cout << "[Lovitura directa!]\n";
-                jucator.castigaExperienta(10); 
+        if (boss) {
+            if (boss->poateTrage()) {
+                auto p = boss->tragePattern();
+                proiectileInamici.insert(proiectileInamici.end(), p.begin(), p.end());
             }
-            std::cout << p << "\n";
+            if (boss->poateAtacSpecial()) {
+                auto p = boss->atacSpirala(tura);
+                proiectileInamici.insert(proiectileInamici.end(), p.begin(), p.end());
+            }
         }
-        jucator.tick();
-        std::cout << jucator << "\n";
-        if (!jucator.eViu()) {
-            std::cout << "\n💀 Jucatorul a fost invins!\n";
-            break;
+        inamici.erase(std::remove_if(inamici.begin(), inamici.end(), [](const Inamic& i) { return i.esteMort(); }), inamici.end());
+        powerups.erase(std::remove_if(powerups.begin(), powerups.end(), [this](Powerup& p) { return p.verificaColectare(jucator); }), powerups.end());
+        if (inamici.empty() && !boss) {
+            wave++;
+            if (wave <= 20)
+                spawnWave();
+            else
+                spawnBoss();
         }
-        jucator.castigaExperienta(5);
     }
-    std::cout << "\n=== Runda terminata ===\n";
+    void ruleaza() {
+        while (jocActiv) {
+            std::cout << jucator << "\n";
+            inputPlayer();
+            actualizeaza();
+            if (!jucator.eViu()) {
+                std::cout << "[AI PIERDUT... GAME OVER]\n";
+                jocActiv = false;
+            }
+            if (boss && boss->esteMort()) {
+                std::cout << "[FELICITARI! AI INVINS BOSSUL SI AI CASTIGAT JOCUL!]\n";
+                jocActiv = false;
+            }
+        }
+    }
+    ~Run() {
+        if (boss) delete boss;
+    }
+};
+    
+          
+
+int main() {
+    Run run;
+    run.ruleaza();
     return 0;
 }
