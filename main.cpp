@@ -457,7 +457,7 @@ public:
             boss->actualizeaza(jucator.getPozitie());
         for (auto& p : powerups)
             p.verificaColectare(jucator);
-        for (auto& p : proiectileJucator) {
+        for (const auto& p : proiectileJucator) {
             for (auto& i : inamici) {
                 if (!i.esteMort() && p.getPozitie().distanta(i.getPozitie()) < 5.0f) {
                     i.primesteDamage(p.esteExploziv() ? 3 : 1);
