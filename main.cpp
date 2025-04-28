@@ -32,9 +32,42 @@ public:
         os << "(" << v.x << ", " << v.y << ")";
         return os;
     }
-};
+};  
 
-class Proiectil;
+class Proiectil {
+    private:
+        Pozitie pozitie;
+        float dx, dy;
+        bool exploziv;
+    public:
+        Proiectil(float x, float y, float dx = 0, float dy = -1.0f, bool exploziv = false) : pozitie(x, y), dx(dx), dy(dy), exploziv(exploziv) {}
+        Proiectil(const Proiectil& other) : pozitie(other.pozitie), dx(other.dx), dy(other.dy), exploziv(other.exploziv) {
+            std::cout << "[Proiectil copiat]\n";
+        }
+        Proiectil& operator=(const Proiectil& other){
+            if (this != &other){
+                pozitie = other.pozitie;
+                dx = other.dx;
+                dy = other.dy;
+                exploziv = other.exploziv;
+            }
+            std::cout << "[Proiectil asignat]\n";
+            return *this;
+        }
+        void actualizeaza() {
+            pozitie.miscari(dx * 2.5f, dy * 2.5f);
+        }
+        Pozitie getPozitie() const {
+            return pozitie;
+        }
+        bool esteExploziv() const { return exploziv; }
+        friend std::ostream& operator<<(std::ostream& os, const Proiectil& p) {
+            os << "Proiectil la " << p.pozitie;
+        return os;
+    }
+    ~Proiectil(){
+    }
+};
 
 class Jucator{
 private:
@@ -173,45 +206,6 @@ public:
         inventar.clear();
         std::cout << "[Jucator distrus: salvare finala completata.]\n";
     } 
-};
-
-class Proiectil {
-private:
-    Pozitie pozitie;
-    float dx, dy;
-    bool exploziv;
-public:
-    Proiectil(float x, float y, float dx = 0, float dy = -1.0f, bool exploziv = false) : pozitie(x, y), dx(dx), dy(dy), exploziv(exploziv) {}
-    Proiectil(const Proiectil& other) : pozitie(other.pozitie), dx(other.dx), dy(other.dy), exploziv(other.exploziv) {
-        std::cout << "[Proiectil copiat]\n";
-    }
-    Proiectil& operator=(const Proiectil& other){
-        if (this != &other){
-            pozitie = other.pozitie;
-            dx = other.dx;
-            dy = other.dy;
-            exploziv = other.exploziv;
-        }
-        std::cout << "[Proiectil asignat]\n";
-        return *this;
-    }
-    void actualizeaza() {
-        pozitie.miscari(dx * 2.5f, dy * 2.5f);
-    }
-    bool verificaLovitura(const Jucator& tinta) {
-        float dist = pozitie.distanta(tinta.getPozitie());
-        return (dist < 5.0f);
-    }
-    Pozitie getPozitie() const {
-        return pozitie;
-    }
-    bool esteExploziv() const { return exploziv; }
-    friend std::ostream& operator<<(std::ostream& os, const Proiectil& p) {
-        os << "Proiectil la " << p.pozitie;
-        return os;
-    }
-    ~Proiectil(){
-    }
 };
 
 class Powerup {
@@ -475,7 +469,7 @@ public:
         proiectileJucator.erase(std::remove_if(proiectileJucator.begin(), proiectileJucator.end(), [](const Proiectil& p) { return p.getPozitie().getX() < 0 || p.getPozitie().getX() > 100 || p.getPozitie().getY() < 0 || p.getPozitie().getY() > 100; }), proiectileJucator.end());
         proiectileInamici.erase(std::remove_if(proiectileInamici.begin(), proiectileInamici.end(), [](const Proiectil& p) { return p.getPozitie().getX() < 0 || p.getPozitie().getX() > 100 || p.getPozitie().getY() < 0 || p.getPozitie().getY() > 100; }), proiectileInamici.end());
         for (auto& p : proiectileInamici) {
-            if (p.verificaLovitura(jucator)) {
+            if (p.getPozitie().distanta(jucator.getPozitie()) < 5.0f) {
                 jucator.lovit(p.esteExploziv() ? 2 : 1);
             }
         }
