@@ -31,55 +31,8 @@ public:
         return os;
     }
 };
-    
-class Proiectil {
-private:
-    Pozitie pozitie;
-    float dx, dy;
-    bool exploziv;
-public:
-    Proiectil(float x, float y, float dx = 0, float dy = -1.0f, bool exploziv = false) : pozitie(x, y), dx(dx), dy(dy), exploziv(exploziv) {}
-    void actualizeaza() {
-        pozitie.miscari(dx * 2.5f, dy * 2.5f);
-    }
-    bool verificaLovitura(Jucator& tinta) {
-        float dist = pozitie.distanta(tinta.getPozitie());
-        return (dist < 5.0f);
-    }
-    Pozitie getPozitie() const {
-        return pozitie;
-    }
-    bool esteExploziv() const { return exploziv; }
-    friend std::ostream& operator<<(std::ostream& os, const Proiectil& p) {
-        os << "Proiectil la " << p.pozitie;
-        return os;
-    }
-    ~Proiectil(){
-    }
-};
 
-class Powerup {
-private:
-    Pozitie pozitie;
-    std::string tip;//"Viata", "RapidFire", "Scut", "MultiShot", "Bazooka", "Shotgun"
-public:
-    Powerup(float x, float y, const std::string& tip) : pozitie(x, y), tip(tip) {}
-    const Pozitie& getPozitie() const { return pozitie; }
-    const std::string& getTip() const { return tip; }
-    bool verificaColectare(Jucator& jucator) {
-        if (pozitie.distanta(jucator.getPozitie()) < 2.0f) {
-            jucator.adaugaItem(tip);
-            return true;
-        }
-        return false;
-    }
-    friend std::ostream& operator<<(std::ostream& os, const Powerup& p) {
-        os << "Powerup [" << p.tip << "] la " << p.pozitie;
-        return os;
-    }
-    ~Powerup(){
-    }
-};
+class Proiectil;
 
 class Jucator{
 private:
@@ -224,9 +177,57 @@ public:
         }
         inventar.clear();
         std::cout << "[Jucator distrus: salvare finala completata.]\n";
-    }
-    
+    } 
 };
+
+class Proiectil {
+    private:
+        Pozitie pozitie;
+        float dx, dy;
+        bool exploziv;
+    public:
+        Proiectil(float x, float y, float dx = 0, float dy = -1.0f, bool exploziv = false) : pozitie(x, y), dx(dx), dy(dy), exploziv(exploziv) {}
+        void actualizeaza() {
+            pozitie.miscari(dx * 2.5f, dy * 2.5f);
+        }
+        bool verificaLovitura(Jucator& tinta) {
+            float dist = pozitie.distanta(tinta.getPozitie());
+            return (dist < 5.0f);
+        }
+        Pozitie getPozitie() const {
+            return pozitie;
+        }
+        bool esteExploziv() const { return exploziv; }
+        friend std::ostream& operator<<(std::ostream& os, const Proiectil& p) {
+            os << "Proiectil la " << p.pozitie;
+            return os;
+        }
+        ~Proiectil(){
+        }
+    };
+
+    class Powerup {
+        private:
+            Pozitie pozitie;
+            std::string tip;//"Viata", "RapidFire", "Scut", "MultiShot", "Bazooka", "Shotgun"
+        public:
+            Powerup(float x, float y, const std::string& tip) : pozitie(x, y), tip(tip) {}
+            const Pozitie& getPozitie() const { return pozitie; }
+            const std::string& getTip() const { return tip; }
+            bool verificaColectare(Jucator& jucator) {
+                if (pozitie.distanta(jucator.getPozitie()) < 2.0f) {
+                    jucator.adaugaItem(tip);
+                    return true;
+                }
+                return false;
+            }
+            friend std::ostream& operator<<(std::ostream& os, const Powerup& p) {
+                os << "Powerup [" << p.tip << "] la " << p.pozitie;
+                return os;
+            }
+            ~Powerup(){
+            }
+        };
     
 class Inamic{
 private:
@@ -235,7 +236,7 @@ private:
     int viata;
     TipInamic tip;//vor exista mai multe tipuri de inamici ca sa nu se plictiseasca jucatorul luptandu-se cu un singur fel de inamic
 public://random se misca random, chaser fuge dupa jucator, iar sniper sta pe loc si trage lovituri puternice si precise
-    Inamic(float x, float y, TipInamic tip = RANDOM, int viata = 3) : pozitie(x, y), cooldown(0), tip(tip), viata(viata) {}
+    Inamic(float x, float y, TipInamic tip = RANDOM, int viata = 3) : pozitie(x, y), cooldown(0), viata(viata), tip(tip) {}
     void actualizeaza(const Pozitie& jucatorPoz) {
         float dx = 0, dy = 0;
         if (tip == RANDOM) {
@@ -311,8 +312,9 @@ private:
     Pozitie pozitie;
     int viata;
     int cooldown;
+    int specialcooldown;
 public:
-    Boss(float x, float y) : pozitie(x, y), viata(100), cooldown(0) {}
+    Boss(float x, float y) : pozitie(x, y), viata(100), cooldown(0), specialcooldown(5) {}
     void actualizeaza(const Pozitie& jucatorPoz) {
         float dx = jucatorPoz.getX() - pozitie.getX();
         float dy = jucatorPoz.getY() - pozitie.getY();
@@ -323,6 +325,7 @@ public:
         }
         pozitie.miscari(dx, dy);
         if (cooldown > 0) cooldown--;
+        if (specialcooldown > 0) specialcooldown--;
     }
     bool poateTrage() {
         if (cooldown == 0){
@@ -331,10 +334,38 @@ public:
         }
         return false;
     }
+    bool poateAtacSpecial(){
+        if(specialcooldown == 0){
+            specialcooldown = 8 + rand() % 5;
+            return true;
+        }
+        return false;
+    }
     std::vector<Proiectil> tragePattern() {
         std::vector<Proiectil> gloante;
         for (float unghi = 0; unghi < 360; unghi += 45) {
             float rad = unghi * 3.14159f / 180.0f;
+            float dx = std::cos(rad);
+            float dy = std::sin(rad);
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), dx, dy, true);
+        }
+        return gloante;
+    }
+    std::vector<Proiectil> atacSpirala(int tura){//atac special trage gloante in directii diferite, acestea rotindu-se
+        std::vector<Proiectil> gloante;
+        float offset = (tura % 360) * 3.14159f / 180.0f;
+        for (float angle = 0; angle < 360; angle += 30) {
+            float rad = angle * 3.14159f / 180.0f + offset;
+            float dx = std::cos(rad);
+            float dy = std::sin(rad);
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), dx, dy, true);
+        }
+        return gloante;
+    }
+    std::vector<Proiectil> atacExplozie() {//un atac prin care boss-ul trage cate un glont in fiecare directie
+        std::vector<Proiectil> gloante;
+        for (float angle = 0; angle < 360; angle += 20) {
+            float rad = angle * 3.14159f / 180.0f;
             float dx = std::cos(rad);
             float dy = std::sin(rad);
             gloante.emplace_back(pozitie.getX(), pozitie.getY(), dx, dy, true);
