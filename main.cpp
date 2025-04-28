@@ -185,38 +185,26 @@ public:
 };
      
 
-class Proiectil{
+class Proiectil {
 private:
     Pozitie pozitie;
     float dx, dy;
-    bool activ;
-    std::string tip;
-    int damage;
+    bool exploziv;
 public:
-    Proiectil(float x, float y, float dx, float dy, std::string tip = "normal"): pozitie(x, y), dx(dx), dy(dy), activ(true), tip(tip) {
-        damage = (tip == "exploziv" ? 2 : 1);
+    Proiectil(float x, float y, float dx = 0, float dy = -1.0f, bool exploziv = false) : pozitie(x, y), dx(dx), dy(dy), exploziv(exploziv) {}
+    void actualizeaza() {
+        pozitie.miscari(dx * 2.5f, dy * 2.5f);
     }
-    void actualizeaza() {//misca proiectilul si il dezactiveaza daca iese din bounds
-        if (!activ) return;
-        pozitie.miscari(dx, dy);
-        if (pozitie.getX() < 0 || pozitie.getX() > 100 || pozitie.getY() < 0 || pozitie.getY() > 100) {
-            activ = false;
-        }
+    bool verificaLovitura(Jucator& tinta) {
+        float dist = pozitie.distanta(tinta.getPozitie());
+        return (dist < 5.0f);
     }
-    bool verificaLovitura(Jucator& tinta) {//verifica un hit
-        if (!activ) return false;
-        if (pozitie.distanta(tinta.getPozitie()) < 1.5f) {
-            tinta.lovit(damage);
-            activ = false;
-            return true;
-        }
-        return false;
+    Pozitie getPozitie() const {
+        return pozitie;
     }
-    bool esteActiv() const {
-        return activ;
-    }
+    bool esteExploziv() const { return exploziv; }
     friend std::ostream& operator<<(std::ostream& os, const Proiectil& p) {
-        os << "Proiectil (" << p.tip << ") la " << p.pozitie << (p.activ ? " [activ]" : " [inactiv]");
+        os << "Proiectil la " << p.pozitie;
         return os;
     }
 };
@@ -263,6 +251,9 @@ public://random se misca random, chaser fuge dupa jucator, iar sniper sta pe loc
             return true;
         }
         return false;
+    }
+    Pozitie getPozitie() const {
+        return pozitie;
     }
     Proiectil trageLaJucator(const Pozitie& tinta) {//inamicii trag doar spre jucator
         float dx = tinta.getX() - pozitie.getX();
