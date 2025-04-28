@@ -1,5 +1,7 @@
 #include <iostream>
 #include <vector>
+#include <SFML/Graphics.hpp>
+#include "ResourceManager.hpp"
 #include <cmath>
 #include <memory>
 #include <fstream>
@@ -535,5 +537,10 @@ public:
 int main() {
     Run run;
     run.ruleaza();
+    ResourceManager& res = ResourceManager::Instance();
+    sf::Texture& backgroundTexture = res.getTexture("background.png");
+    sf::Sprite background(backgroundTexture); 
+    sf::Font& font = res.getFont("arial.ttf");
+    sf::Text title(font, "My game!", 30);
     return 0;
 }
