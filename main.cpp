@@ -16,7 +16,7 @@ class Pozitie{ //reprezinta un reper cartezian xoy pe care il vom folosi pentru 
 private:
     float x, y;
 public:
-    Pozitie(float x = 0, float y = 0) : x(x), y(y) {}
+    explicit Pozitie(float x = 0, float y = 0) : x(x), y(y) {}
     float getX() const { return x; }
     float getY() const { return y; }
     void miscari(float dx, float dy, float maxX = 100, float maxY = 100) {//misca o entitate fara ca aceasta sa iasa din bounds
@@ -136,20 +136,20 @@ public:
         }
         return gloante;
     }
-    void actualizeazaCombo(){
+    /*void actualizeazaCombo(){
         comboKill++;
         comboTimer = 5;
         if (comboKill >= 5){
             adaugaItem("RapidFire");
             comboKill = 0;
         }
-    }
+    }*/
     const Pozitie& getPozitie() const {
         return pozitie;
     }
     friend std::ostream& operator<<(std::ostream& os, const Jucator& j) {
         os << "Jucator la " << j.pozitie << " | Viata: " << j.viata << " | Scor: " << j.scor << " | XP: " << j.experienta << " | Inventar: [ ";
-        for (auto& item : j.inventar) os << item << " ";
+        for (const auto& item : j.inventar) os << item << " ";
         os << "]" << (j.cooldown ? " (invincibil)" : "");
         return os;
     }
@@ -196,7 +196,7 @@ public:
     void actualizeaza() {
         pozitie.miscari(dx * 2.5f, dy * 2.5f);
     }
-    bool verificaLovitura(Jucator& tinta) {
+    bool verificaLovitura(const Jucator& tinta) {
         float dist = pozitie.distanta(tinta.getPozitie());
         return (dist < 5.0f);
     }
@@ -219,7 +219,6 @@ private:
 public:
     Powerup(float x, float y, const std::string& tip) : pozitie(x, y), tip(tip) {}
     const Pozitie& getPozitie() const { return pozitie; }
-    const std::string& getTip() const { return tip; }
     bool verificaColectare(Jucator& jucator) {
         if (pozitie.distanta(jucator.getPozitie()) < 2.0f) {
             jucator.adaugaItem(tip);
@@ -265,7 +264,7 @@ public://random se misca random, chaser fuge dupa jucator, iar sniper sta pe loc
         pozitie.miscari(dx, dy);
         if (cooldown > 0) cooldown--;
     }
-    std::vector<Proiectil> trageLaJucatorMulti(const Pozitie& tinta) {
+    /*std::vector<Proiectil> trageLaJucatorMulti(const Pozitie& tinta) {
         std::vector<Proiectil> gloante;
         float dx = tinta.getX() - pozitie.getX();
         float dy = tinta.getY() - pozitie.getY();
@@ -277,7 +276,7 @@ public://random se misca random, chaser fuge dupa jucator, iar sniper sta pe loc
         gloante.emplace_back(pozitie.getX(), pozitie.getY(), dy, -dx, false);
         gloante.emplace_back(pozitie.getX(), pozitie.getY(), -dy, dx, false);
         return gloante;
-    }
+    }*///deocamdata nefolosita
     Proiectil trageLaJucator(const Pozitie& tinta) {
         float dx = tinta.getX() - pozitie.getX();
         float dy = tinta.getY() - pozitie.getY();
@@ -490,8 +489,15 @@ public:
                 proiectileInamici.insert(proiectileInamici.end(), p.begin(), p.end());
             }
             if (boss->poateAtacSpecial()) {
-                auto p = boss->atacSpirala(tura);
-                proiectileInamici.insert(proiectileInamici.end(), p.begin(), p.end());
+                int k = rand() % 2;
+                if (k == 0){
+                    auto p = boss->atacSpirala(tura);
+                    proiectileInamici.insert(proiectileInamici.end(), p.begin(), p.end());
+                }
+                else{
+                     auto p = boss->atacExplozie();
+                     proiectileInamici.insert(proiectileInamici.end(), p.begin(), p.end());
+                }
             }
         }
         inamici.erase(std::remove_if(inamici.begin(), inamici.end(), [](const Inamic& i) { return i.esteMort(); }), inamici.end());
