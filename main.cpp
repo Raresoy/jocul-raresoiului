@@ -31,7 +31,54 @@ public:
     }
 };
     
-class Proiectil;
+class Proiectil {
+private:
+    Pozitie pozitie;
+    float dx, dy;
+    bool exploziv;
+public:
+    Proiectil(float x, float y, float dx = 0, float dy = -1.0f, bool exploziv = false) : pozitie(x, y), dx(dx), dy(dy), exploziv(exploziv) {}
+    void actualizeaza() {
+        pozitie.miscari(dx * 2.5f, dy * 2.5f);
+    }
+    bool verificaLovitura(Jucator& tinta) {
+        float dist = pozitie.distanta(tinta.getPozitie());
+        return (dist < 5.0f);
+    }
+    Pozitie getPozitie() const {
+        return pozitie;
+    }
+    bool esteExploziv() const { return exploziv; }
+    friend std::ostream& operator<<(std::ostream& os, const Proiectil& p) {
+        os << "Proiectil la " << p.pozitie;
+        return os;
+    }
+    ~Proiectil(){
+    }
+};
+
+class Powerup {
+private:
+    Pozitie pozitie;
+    std::string tip;//"Viata", "RapidFire", "Scut", "MultiShot", "Bazooka", "Shotgun"
+public:
+    Powerup(float x, float y, const std::string& tip) : pozitie(x, y), tip(tip) {}
+    const Pozitie& getPozitie() const { return pozitie; }
+    const std::string& getTip() const { return tip; }
+    bool verificaColectare(Jucator& jucator) {
+        if (pozitie.distanta(jucator.getPozitie()) < 2.0f) {
+            jucator.adaugaItem(tip);
+            return true;
+        }
+        return false;
+    }
+    friend std::ostream& operator<<(std::ostream& os, const Powerup& p) {
+        os << "Powerup [" << p.tip << "] la " << p.pozitie;
+        return os;
+    }
+    ~Powerup(){
+    }
+};
 
 class Jucator{
 private:
@@ -45,6 +92,8 @@ private:
     const int reloadMax = 3;
     int rapidFire = 0;
     int multiShot = 0;
+    int comboKill = 0;
+    int comboTimer = 0;
     std::vector<std::string> inventar;
     TipArma armaCurenta = NORMAL;
     int armaTimer = 0;
@@ -65,6 +114,9 @@ public:
                 std::cout << "[Arma s-a terminat, inapoi la pistolul normal]\n";
             }
         }
+        if (comboTimer == 0 && comboKill > 0){
+            comboKill = 0;
+        }
     }
     void lovit(int damage = 1) {
         if (cooldown == 0 && viata > 0) {
@@ -79,21 +131,6 @@ public:
             nivel++;
             viata++;
         }
-    }
-    std::vector<Proiectil> creeazaProiectile(){
-        std::vector<Proiectil> gloante;
-        if (armaCurenta == NORMAL) {
-            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0, "normal");
-        } 
-        else if (armaCurenta == SHOTGUN) {
-            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.1f, "normal");
-            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, -0.1f, "normal");
-            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.0f, "normal");
-        } 
-        else if (armaCurenta == BAZOOKA) {
-            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 0.7f, 0, "exploziv");
-        }
-        return gloante;
     }
     bool poateTrage()
     {
@@ -133,6 +170,33 @@ public:
         scor += s; 
         castigaExperienta(s);
     }
+    std::vector<Proiectil> creeazaProiectile(){
+        std::vector<Proiectil> gloante;
+        if (armaCurenta == NORMAL){
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0, false);
+        }
+        else if (armaCurenta == SHOTGUN){
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.1f, false);
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, -0.1f, false);
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.0f, false);
+        }
+        else if (armaCurenta == BAZOOKA){
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 0.7f, 0, true);
+        }
+        if (multiShot > 0){
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.3f, false);
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, -0.3f, false);
+        }
+        return gloante;
+    }
+    void actualizeazaCombo(){
+        comboKill++;
+        comboTimer = 5;
+        if (comboKill >= 5){
+            adaugaItem("RapidFire");
+            comboKill = 0;
+        }
+    }
     const Pozitie& getPozitie() const {
         return pozitie;
     }
@@ -161,52 +225,6 @@ public:
         std::cout << "[Jucator distrus: salvare finala completata.]\n";
     }
     
-};
-    
-class Powerup {
-private:
-    Pozitie pozitie;
-    std::string tip;//"Viata", "RapidFire", "Scut", "MultiShot", "Bazooka", "Shotgun"
-public:
-    Powerup(float x, float y, const std::string& tip) : pozitie(x, y), tip(tip) {}
-    const Pozitie& getPozitie() const { return pozitie; }
-    const std::string& getTip() const { return tip; }
-    bool verificaColectare(Jucator& jucator) {
-        if (pozitie.distanta(jucator.getPozitie()) < 2.0f) {
-            jucator.adaugaItem(tip);
-            return true;
-        }
-        return false;
-    }
-    friend std::ostream& operator<<(std::ostream& os, const Powerup& p) {
-        os << "Powerup [" << p.tip << "] la " << p.pozitie;
-        return os;
-    }
-};
-     
-
-class Proiectil {
-private:
-    Pozitie pozitie;
-    float dx, dy;
-    bool exploziv;
-public:
-    Proiectil(float x, float y, float dx = 0, float dy = -1.0f, bool exploziv = false) : pozitie(x, y), dx(dx), dy(dy), exploziv(exploziv) {}
-    void actualizeaza() {
-        pozitie.miscari(dx * 2.5f, dy * 2.5f);
-    }
-    bool verificaLovitura(Jucator& tinta) {
-        float dist = pozitie.distanta(tinta.getPozitie());
-        return (dist < 5.0f);
-    }
-    Pozitie getPozitie() const {
-        return pozitie;
-    }
-    bool esteExploziv() const { return exploziv; }
-    friend std::ostream& operator<<(std::ostream& os, const Proiectil& p) {
-        os << "Proiectil la " << p.pozitie;
-        return os;
-    }
 };
     
 class Inamic{
