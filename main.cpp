@@ -208,6 +208,18 @@ public://random se misca random, chaser fuge dupa jucator, iar sniper sta pe loc
         pozitie.miscari(dx, dy);
         if (cooldown > 0) cooldown--;
     }
+    std::vector<Proiectil> trageLaJucatorMulti(const Pozitie& tinta) {//chaser si sniper pot lovi in pattern-uri fiind mai greu sa te feresti de gloantele lor
+        std::vector<Proiectil> gloante;
+        float dx = tinta.getX() - pozitie.getX();
+        float dy = tinta.getY() - pozitie.getY();
+        float dist = std::sqrt(dx * dx + dy * dy);
+        dx = (dist > 0) ? dx / dist : 0;
+        dy = (dist > 0) ? dy / dist : 0;
+        gloante.push_back(Proiectil(pozitie.getX(), pozitie.getY(), dx, dy, (tip == SNIPER ? "exploziv" : "normal")));
+        gloante.push_back(Proiectil(pozitie.getX(), pozitie.getY(), dy, -dx, "normal")); 
+        gloante.push_back(Proiectil(pozitie.getX(), pozitie.getY(), -dy, dx, "normal"));
+        return gloante;
+    }
     bool poateTrage() {
         if (cooldown == 0) {
             cooldown = (tip == SNIPER ? 2 : 4);
