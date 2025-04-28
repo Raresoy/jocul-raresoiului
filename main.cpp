@@ -4,8 +4,12 @@
 #include <memory>
 #include <fstream>
 #include <sstream>
+#include <cstdlib>
+#include <ctime>
 
 enum TipInamic { RANDOM, CHASER, SNIPER };
+
+enum TipArma { NORMAL, SHOTGUN, BAZOOKA};
 
 class Pozitie{ //reprezinta un reper cartezian xoy pe care il vom folosi pentru a misca entitatile pe harta
 private:
@@ -27,6 +31,7 @@ public:
     }
 };
     
+class Proiectil;
 
 class Jucator{
 private:
@@ -41,6 +46,8 @@ private:
     int rapidFire = 0;
     int multiShot = 0;
     std::vector<std::string> inventar;
+    TipArma armaCurenta = NORMAL;
+    int armaTimer = 0;
 public:
     Jucator(float x, float y, int viata = 5) : pozitie(x, y), viata(viata), cooldown(0), scor(0), nivel(1), experienta(0), reloadTime(0) {}
     void muta(float dx, float dy) {//se misca jucatorul pe harta
@@ -51,6 +58,13 @@ public:
         if (reloadTime > 0) reloadTime--;//reload
         if (rapidFire > 0) rapidFire--;
         if (multiShot > 0) multiShot--;
+        if (armaTimer > 0) {
+            armaTimer--;
+            if (armaTimer == 0){
+                armaCurenta = NORMAL;
+                std::cout << "[Arma s-a terminat, inapoi la pistolul normal]\n";
+            }
+        }
     }
     void lovit(int damage = 1) {
         if (cooldown == 0 && viata > 0) {
@@ -65,6 +79,21 @@ public:
             nivel++;
             viata++;
         }
+    }
+    std::vector<Proiectil> creeazaProiectile(){
+        std::vector<Proiectil> gloante;
+        if (armaCurenta == NORMAL) {
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0, "normal");
+        } 
+        else if (armaCurenta == SHOTGUN) {
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.1f, "normal");
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, -0.1f, "normal");
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.0f, "normal");
+        } 
+        else if (armaCurenta == BAZOOKA) {
+            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 0.7f, 0, "exploziv");
+        }
+        return gloante;
     }
     bool poateTrage()
     {
@@ -84,6 +113,14 @@ public:
         else if (item == "Scut") cooldown += 3;
         else if (item == "RapidFire") rapidFire = 10;
         else if (item == "MultiShot") multiShot = 10;
+        else if (item == "Shotgun"){
+            armaCurenta = SHOTGUN;
+            armaTimer = 10;
+        }
+        else if (item == "Bazooka"){
+            armaCurenta = BAZOOKA;
+            armaTimer = 10;
+        }
     }
     void dodge() {
         cooldown = 2;
@@ -129,7 +166,7 @@ public:
 class Powerup {
 private:
     Pozitie pozitie;
-    std::string tip;//"Viata", "RapidFire", "Scut", "MultiShot"
+    std::string tip;//"Viata", "RapidFire", "Scut", "MultiShot", "Bazooka", "Shotgun"
 public:
     Powerup(float x, float y, const std::string& tip) : pozitie(x, y), tip(tip) {}
     const Pozitie& getPozitie() const { return pozitie; }
