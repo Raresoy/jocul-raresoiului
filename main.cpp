@@ -468,7 +468,7 @@ public:
         }
         proiectileJucator.erase(std::remove_if(proiectileJucator.begin(), proiectileJucator.end(), [](const Proiectil& p) { return p.getPozitie().getX() < 0 || p.getPozitie().getX() > 100 || p.getPozitie().getY() < 0 || p.getPozitie().getY() > 100; }), proiectileJucator.end());
         proiectileInamici.erase(std::remove_if(proiectileInamici.begin(), proiectileInamici.end(), [](const Proiectil& p) { return p.getPozitie().getX() < 0 || p.getPozitie().getX() > 100 || p.getPozitie().getY() < 0 || p.getPozitie().getY() > 100; }), proiectileInamici.end());
-        for (auto& p : proiectileInamici) {
+        for (const auto& p : proiectileInamici) {
             if (p.getPozitie().distanta(jucator.getPozitie()) < 5.0f) {
                 jucator.lovit(p.esteExploziv() ? 2 : 1);
             }
