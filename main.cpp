@@ -532,7 +532,7 @@ int main() {
     Run run;
     run.ruleaza();
     ResourceManager& res = ResourceManager::Instance();
-    sf::Texture& backgroundTexture = res.getTexture("background.png");
+    sf::Texture& backgroundTexture = res.getTexture("airplane.png");
     sf::Sprite background(backgroundTexture); 
     sf::Font& font = res.getFont("arial.ttf");
     sf::Text title(font, "My game!", 30);
