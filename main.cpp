@@ -533,6 +533,7 @@ int main() {
     run.ruleaza();
     ResourceManager& res = ResourceManager::Instance();
     sf::Texture& backgroundTexture = res.getTexture("airplane.png");
+    sf::Font& ResourceManager::getFont(const std::string& font_name)
     sf::Sprite background(backgroundTexture); 
     return 0;
 }
