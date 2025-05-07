@@ -533,7 +533,8 @@ int main() {
     run.ruleaza();
     ResourceManager& res = ResourceManager::Instance();
     sf::Texture& backgroundTexture = res.getTexture("airplane.png");
-    sf::Font font("arial.ttf");
+    sf::Font& font = res.getFont("Arial");
+    sf::Text text(font, "Hello world!", 24);
     sf::Sprite background(backgroundTexture); 
     return 0;
 }

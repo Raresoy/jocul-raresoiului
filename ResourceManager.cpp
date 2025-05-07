@@ -4,7 +4,6 @@
 
 #include "ResourceManager.hpp"
 #include <iostream>
-
 ResourceManager& ResourceManager::Instance()
 {
     static ResourceManager instance;
