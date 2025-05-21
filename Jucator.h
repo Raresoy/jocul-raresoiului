@@ -76,6 +76,14 @@ public:
         }
     }
 
+    virtual void interactCu(Entitate& other) override {
+        float distanta = pozitie.distanta(other.getPozitie());
+        if (distanta < 5.0f) {
+            primesteDamage(1);
+            other.primesteDamage(1);
+            experienta += 1;
+        }
+    }
     
     bool poateTrage() {
         if (reloadTime == 0) {

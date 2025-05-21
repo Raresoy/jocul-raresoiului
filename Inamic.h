@@ -57,6 +57,24 @@ public:
             viata = 0;
     }
 
+    virtual void interactCu(Entitate& other) override {
+        float distanta = pozitie.distanta(other.getPozitie());
+        if (distanta < 5.0f) {
+            if (dynamic_cast<Jucator*>(&other)) {
+                other.primesteDamage(1);
+            } else if (dynamic_cast<Inamic*>(&other)) {
+                float dx = pozitie.getX() - other.getPozitie().getX();
+                float dy = pozitie.getY() - other.getPozitie().getY();
+                float dist = std::sqrt(dx * dx + dy * dy);
+                if (dist > 0) {
+                    dx = dx / dist * 0.5f;
+                    dy = dy / dist * 0.5f;
+                    pozitie.miscari(dx, dy);
+                }
+            }
+        }
+    }
+
     bool poateTrage() {
         if (cooldown == 0) {
             cooldown = (tip == SNIPER ? 2 : 4);

@@ -83,6 +83,25 @@ class Run{
                 boss->actualiz(jucator.getPozitie());
             for (auto& p : powerups)
                 p.verificaColectare(jucator);
+            for (auto& i : inamici) {
+        
+                i->interactCu(jucator);
+                jucator.interactCu(*i);
+                for (auto& j : inamici) {
+                    if (i != j) {
+                        i->interactCu(*j);
+                    }
+                }
+            }
+            if (boss) {
+                boss->interactCu(jucator);
+                jucator.interactCu(*boss);
+                
+                for (auto& i : inamici) {
+                    boss->interactCu(*i);
+                    i->interactCu(*boss);
+                }
+            }
             for (const auto& p : proiectileJucator) {
                 for (auto& i : inamici) {
                     if (!i->esteMort() && p.getPozitie().distanta(i->getPozitie()) < 5.0f) {

@@ -50,7 +50,27 @@ public:
             specialcooldown = 8 + rand() % 5;
             return true;
         }
-        return false;
+        return
+        
+        false;
+    }
+
+    virtual void interactCu(Entitate& other) override {
+        float distanta = pozitie.distanta(other.getPozitie());
+        
+        if (distanta < 8.0f) {
+            other.primesteDamage(3);
+            float dx = other.getPozitie().getX() - pozitie.getX();
+            float dy = other.getPozitie().getY() - pozitie.getY();
+            float dist = std::sqrt(dx * dx + dy * dy);
+            if (dist > 0) {
+                dx = dx / dist * 5.0f;
+                dy = dy / dist * 5.0f;
+                if (Jucator* jucator = dynamic_cast<Jucator*>(&other)) {
+                    jucator->muta(dx, dy);
+                }
+            }
+        }
     }
 
     std::vector<Proiectil> tragePattern() {

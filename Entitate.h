@@ -25,6 +25,13 @@ public:
     static float calculeazaDistanta(const Entitate& e1, const Entitate& e2) {
         return e1.getPozitie().distanta(e2.getPozitie());
     }
+    virtual void interactCu(Entitate& other) {
+        float distanta = pozitie.distanta(other.getPozitie());
+        if (distanta < 10.0f) {
+            // Default behavior is to damage the other entity if close enough
+            other.primesteDamage(1);
+        }
+    }
     friend std::ostream& operator<<(std::ostream& os, const Entitate&) {
         return os;
     }
