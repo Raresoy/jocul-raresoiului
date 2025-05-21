@@ -25,7 +25,7 @@ public:
     static float calculeazaDistanta(const Entitate& e1, const Entitate& e2) {
         return e1.getPozitie().distanta(e2.getPozitie());
     }
-    friend std::ostream& operator<<(std::ostream& os, const Entitate& e) {
+    friend std::ostream& operator<<(std::ostream& os, const Entitate&) {
         return os;
     }
 protected:

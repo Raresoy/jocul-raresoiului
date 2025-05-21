@@ -70,7 +70,7 @@ class Run{
             }
         }
         void actualizeaza() {
-            jucator.actualiz(jucator);
+            jucator.actualiz(jucator.getPozitie());
             tura++;
             for (auto& p : proiectileJucator)
                 p.actualizeaza();
@@ -79,7 +79,7 @@ class Run{
             for (auto& i : inamici)
                 i.actualiz(jucator.getPozitie());
             if (boss)
-                boss->actualizeaza(jucator.getPozitie());
+                boss->actualiz(jucator.getPozitie());
             for (auto& p : powerups)
                 p.verificaColectare(jucator);
             for (const auto& p : proiectileJucator) {

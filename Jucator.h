@@ -44,7 +44,7 @@ public:
         pozitie.miscari(dx, dy);
     }
   
-    virtual void actualiz(const Pozitie& target) override {
+    virtual void actualiz(const Pozitie&) override {
         if (cooldown > 0) cooldown--;
         if (reloadTime > 0) reloadTime--;
         if (rapidFire > 0) rapidFire--;
