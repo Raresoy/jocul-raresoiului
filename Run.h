@@ -70,14 +70,14 @@ class Run{
             }
         }
         void actualizeaza() {
-            jucator.tick();
+            jucator.actualiz(jucator);
             tura++;
             for (auto& p : proiectileJucator)
                 p.actualizeaza();
             for (auto& p : proiectileInamici)
                 p.actualizeaza();
             for (auto& i : inamici)
-                i.actualizeaza(jucator.getPozitie());
+                i.actualiz(jucator.getPozitie());
             if (boss)
                 boss->actualizeaza(jucator.getPozitie());
             for (auto& p : powerups)
@@ -99,7 +99,7 @@ class Run{
             proiectileInamici.erase(std::remove_if(proiectileInamici.begin(), proiectileInamici.end(), [](const Proiectil& p) { return p.getPozitie().getX() < 0 || p.getPozitie().getX() > 100 || p.getPozitie().getY() < 0 || p.getPozitie().getY() > 100; }), proiectileInamici.end());
             for (const auto& p : proiectileInamici) {
                 if (p.getPozitie().distanta(jucator.getPozitie()) < 5.0f) {
-                    jucator.lovit(p.esteExploziv() ? 2 : 1);
+                    jucator.primesteDamage(p.esteExploziv() ? 2 : 1);
                 }
             }
             for (auto& i : inamici) {
