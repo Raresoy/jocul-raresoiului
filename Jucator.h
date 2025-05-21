@@ -133,24 +133,6 @@ public:
         return gloante;
     }
     
-    ~Jucator() {
-        std::ofstream out("jucator_final.txt");
-        if (out.is_open()) {
-            out << "Stare finala jucator:\n";
-            out << "Pozitie: " << pozitie << "\n";
-            out << "Viata: " << viata << "\n";
-            out << "Scor: " << scor << "\n";
-            out << "Inventar: ";
-            for (const auto& item : inventar)
-                out << item << " ";
-            out << "\n";
-            out.close();
-        } else {
-            std::cerr << "[Eroare: Nu s-a putut scrie fisierul jucator_final.txt]\n";
-        }
-        inventar.clear();
-        std::cout << "[Jucator distrus: salvare finala completata.]\n";
-    }
 protected:
     virtual void afiseaza(std::ostream& os) const override {
         os << "Jucator la " << pozitie << " | Viata: " << viata << " | Scor: " << scor << " | XP: " << experienta << " | Inventar: [ ";
