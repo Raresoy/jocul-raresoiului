@@ -75,6 +75,7 @@ public:
             viata++;
         }
     }
+
     
     bool poateTrage() {
         if (reloadTime == 0) {
