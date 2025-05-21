@@ -73,10 +73,6 @@ public:
         return Proiectil(pozitie.getX(), pozitie.getY(), dx / dist, dy / dist, tip == SNIPER);
     }
 
-    TipInamic getTip() const {
-        return tip;
-    }
-
 protected:
     virtual void afiseaza(std::ostream& os) const override {
         std::string tipStr = (tip == RANDOM) ? "Random" : (tip == CHASER ? "Chaser" : "Sniper");
