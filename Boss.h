@@ -55,9 +55,10 @@ public:
         false;
     }
 
+    virtual int getViata() override { return viata; }
+
     virtual void interactCu(Entitate& other) override {
         float distanta = pozitie.distanta(other.getPozitie());
-        
         if (distanta < 8.0f) {
             other.primesteDamage(3);
             float dx = other.getPozitie().getX() - pozitie.getX();

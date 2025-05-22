@@ -21,6 +21,7 @@ public:
     Pozitie getPozitie() const {
         return pozitie;
     }
+    virtual int getViata() { return viata; }
     virtual Entitate* clone() const = 0;
     static float calculeazaDistanta(const Entitate& e1, const Entitate& e2) {
         return e1.getPozitie().distanta(e2.getPozitie());

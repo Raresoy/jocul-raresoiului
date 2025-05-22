@@ -84,6 +84,8 @@ public:
             experienta += 1;
         }
     }
+
+    virtual int getViata() override { return viata; }
     
     bool poateTrage() {
         if (reloadTime == 0) {
