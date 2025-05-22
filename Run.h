@@ -42,8 +42,8 @@ private:
     std::map<std::string, int> statistici;
     std::vector<std::string> mesajeEvenimente;
     char ultimaComanda;
-    int dificultate; 
-    int delayActiune;
+    int dificultate; // 1 = ușor, 2 = normal, 3 = greu
+    int delayActiune; // ms între turele jocului
     void clearScreen() {
         #ifdef _WIN32
         system("cls");
@@ -224,6 +224,8 @@ public:
                 ++it;
             }
         }
+        gestioneazaInteractiuni();
+        gestioneazaProiectile();
         if (inamici.empty() && !boss) {
             wave++;
             if (wave <= 20) {
@@ -232,7 +234,23 @@ public:
                 spawnBoss();
             }
         }
+        //genereaza powerup ocazional
+        if (rand() % 100 < (dificultate == 1 ? 5 : (dificultate == 2 ? 3 : 2))) {
+            float x = 10 + rand() % 80;
+            float y = 10 + rand() % 80;
+            spawnPowerup(x, y);
+        }
     }
+    void gestioneazaInteractiuni() {
+        for (auto& i : inamici) {
+            i->interactCu(jucator);
+            jucator.interactCu(*i);
+            for (auto& j : inamici) {
+                if (i != j) {
+                    i->interactCu(*j);
+                }
+            }
+        }
         if (boss) {
             boss->interactCu(jucator);
             jucator.interactCu(*boss);
@@ -242,6 +260,74 @@ public:
             }
         }
     }
+    void gestioneazaProiectile() {
+        for (const auto& p : proiectileJucator) {
+            for (auto& i : inamici) {
+                if (!i->esteMort() && p.getPozitie().distanta(i->getPozitie()) < 5.0f) {
+                    i->primesteDamage(p.esteExploziv() ? 3 : 1);
+                    statistici["damageProvocat"] += (p.esteExploziv() ? 3 : 1);
+                    jucator.scorPlus(1);
+                    scor++;
+                    if (i->esteMort()) {
+                        statistici["inamiciUcisi"]++;
+                        int sansaPowerup = dificultate == 1 ? 25 : (dificultate == 2 ? 15 : 10);
+                        if (rand() % 100 < sansaPowerup) {
+                            spawnPowerup(i->getPozitie().getX(), i->getPozitie().getY());
+                        }
+                    }
+                }
+            }
+            if (boss && p.getPozitie().distanta(boss->getPozitie()) < 5.0f) {
+                int damage = p.esteExploziv() ? 5 : 2;
+                boss->primesteDamage(damage);
+                statistici["damageProvocat"] += damage;
+                scor += 2;
+                if (!boss->esteMort()) {
+                    int procentViata = boss->getViata();
+                    if (procentViata < 30) {
+                        adaugaMesaj("Boss aproape invins! Continua!");
+                    }
+                }
+            }
+        }
+        proiectileJucator.erase(std::remove_if(proiectileJucator.begin(), proiectileJucator.end(), [](const Proiectil& p) { 
+                return p.getPozitie().getX() < 0 || p.getPozitie().getX() > 100 || p.getPozitie().getY() < 0 || p.getPozitie().getY() > 100; }), proiectileJucator.end());
+        proiectileInamici.erase(std::remove_if(proiectileInamici.begin(), proiectileInamici.end(), [](const Proiectil& p) { 
+            return p.getPozitie().getX() < 0 || p.getPozitie().getX() > 100 || p.getPozitie().getY() < 0 || p.getPozitie().getY() > 100; }), proiectileInamici.end()); 
+        for (const auto& p : proiectileInamici) {
+            if (p.getPozitie().distanta(jucator.getPozitie()) < 5.0f) {
+                int damage = p.esteExploziv() ? 2 : 1;
+                jucator.primesteDamage(damage);
+                statistici["damagePrimit"] += damage;
+            }
+        }
+        for (auto& i : inamici) {
+            if (Inamic* inamic = dynamic_cast<Inamic*>(i.get())) {
+                if (inamic->poateTrage()) {
+                    auto p = inamic->trageLaJucator(jucator.getPozitie());
+                    proiectileInamici.push_back(p);
+                }
+            }
+        }
+        if (boss) {
+            if (boss->poateTrage()) {
+                auto p = boss->tragePattern();
+                proiectileInamici.insert(proiectileInamici.end(), p.begin(), p.end());
+            }
+            if (boss->poateAtacSpecial()) {
+                int k = rand() % 2;
+                if (k == 0) {
+                    adaugaMesaj("BOSS folosește atacul spirala!");
+                    auto p = boss->atacSpirala(tura);
+                    proiectileInamici.insert(proiectileInamici.end(), p.begin(), p.end());
+                }
+                else {
+                    adaugaMesaj("BOSS folosește explozia!");
+                    auto p = boss->atacExplozie();
+                    proiectileInamici.insert(proiectileInamici.end(), p.begin(), p.end());
+                }
+            }
+        }
         //elimina inamicii morti
         size_t inamiciInitial = inamici.size();
         inamici.erase(std::remove_if(inamici.begin(), inamici.end(), 
@@ -251,6 +337,7 @@ public:
         if (inamici.size() < inamiciInitial) {
             statistici["inamiciUcisi"] += (inamiciInitial - inamici.size());
         }
+    }
     
     void adaugaMesaj(const std::string& mesaj) {
         mesajeEvenimente.push_back(mesaj);
@@ -424,6 +511,7 @@ public:
         }
         afisareFinal();
     }
+    
     ~Run() {}
 };
 #endif
