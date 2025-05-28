@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <cctype>
 #include <string>
+#include "GameException.h"
 #include <limits>
 #include "Pozitie.h"
 #include "Proiectil.h"
@@ -54,6 +55,7 @@ private:
     void asteptare(int ms) {
         std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     }
+    bool criticalErrorOccurred = false;
 
 public:
     Run() : jucator(50, 90), wave(1), tura(0), turaCurenta(0), jocActiv(true), modPauza(false), 
@@ -63,34 +65,45 @@ public:
     }
 
     void initJoc() {
-        clearScreen();
-        std::cout << "=== The Adventures of Raresoi ===\n\n";
-        std::cout << "Alege nivelul de dificultate:\n";
-        std::cout << "1 - Usor (inamici mai lenti, mai putini, mai multe powerup-uri)\n";
-        std::cout << "2 - Normal (setari echilibrate)\n";
-        std::cout << "3 - Greu (inamici mai multi, mai rapizi, mai putine powerup-uri)\n";
-        std::cout << "Alegerea ta (1-3): ";
-        char optiune;
-        std::cin >> optiune;
-        if (optiune == '1') {
-            dificultate = 1;
-            delayActiune = 250;
-        } else if (optiune == '3') {
-            dificultate = 3;
-            delayActiune = 150;
-        } else {
-            dificultate = 2;
-            delayActiune = 200;
+        try {
+            clearScreen();
+            std::cout << "=== The Adventures of Raresoi ===\n\n";
+            int tentative = 0;
+            while (tentative < 3) {
+                try {
+                    std::cout << "Alege nivelul de dificultate:\n";
+                    std::cout << "1 - Usor\n2 - Normal\n3 - Greu\n";
+                    std::cout << "Alegerea ta (1-3): ";
+                    char optiune;
+                    std::cin >> optiune;
+                    if (optiune < '1' || optiune > '3') {
+                        throw InvalidCommandException(optiune);
+                    }
+                    dificultate = optiune - '0';
+                    delayActiune = (dificultate == 1) ? 250 : (dificultate == 3) ? 150 : 200;
+                    break;
+                } 
+                catch (const InvalidCommandException& e) {
+                    ExceptionHandler::handleException(e);
+                    tentative++;
+                    if (tentative < 3) {
+                        std::cout << "Te rog introdu o optiune valida (1-3). Incercari ramase: " 
+                                  << (3 - tentative) << std::endl;
+                    }
+                }
+            }
+            
+            if (tentative >= 3) {
+                ExceptionHandler::logRecoveryAction("S-a folosit dificultatea default (Normal)");
+                dificultate = 2;
+                delayActiune = 200;
+            }
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            
+        } 
+        catch (const std::exception& e) {
+            throw SystemException("Initializam jocul..", e.what());
         }
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        afisareControale();
-        asteptare(3000);
-        statistici["inamiciUcisi"] = 0;
-        statistici["gloanteTrase"] = 0;
-        statistici["powerupuriColectate"] = 0;
-        statistici["damagePrimit"] = 0;
-        statistici["damageProvocat"] = 0;
-        spawnWave();
     }
     void afisareControale() {
         clearScreen();
@@ -111,27 +124,54 @@ public:
     }
 
     void spawnWave() {
-        int nrInamici = 5 + wave;
-        if (dificultate == 1) {
-            nrInamici = 3 + wave / 2;
-        } else if (dificultate == 3) {
-            nrInamici = 7 + wave;
-        }
-        for (int i = 0; i < nrInamici; ++i) {
-            TipInamic tip = static_cast<TipInamic>(rand() % 3);
-            float x = rand() % 100;
-            float y = 10 + rand() % 30; 
-            int viataInamic = 3;
-            if (wave > 10) viataInamic += (wave - 10) / 2;
-            if (dificultate == 3) viataInamic += 1;
-            inamici.push_back(std::make_unique<Inamic>(x, y, tip, viataInamic));
-        }
-        adaugaMesaj("Wave " + std::to_string(wave) + " a inceput cu " + std::to_string(nrInamici) + " inamici!");
-        //adaugam un powerup la 3 wave uri
-        if (wave % (dificultate == 1 ? 2 : 3) == 0) {
-            float x = 20 + rand() % 60;
-            float y = 20 + rand() % 60;
-            spawnPowerup(x, y);
+        try {
+            if (wave < 1 || wave > 20) {
+                throw InvalidWaveException(wave);
+            }
+            int nrInamici = 5 + wave;
+            if (dificultate == 1) {
+                nrInamici = 3 + wave / 2;
+            } 
+            else if (dificultate == 3) {
+                nrInamici = 7 + wave;
+            }
+            if (nrInamici > 50) {
+                throw GameStateException("Prea multi inamici: " + std::to_string(nrInamici), "Wave Spawning");
+            }
+            
+            for (int i = 0; i < nrInamici; ++i) {
+                try {
+                    TipInamic tip = static_cast<TipInamic>(rand() % 3);
+                    float x = rand() % 100;
+                    float y = 10 + rand() % 30;
+                    int viataInamic = 3;
+                    if (wave > 10) viataInamic += (wave - 10) / 2;
+                    if (dificultate == 3) viataInamic += 1;
+                    auto inamic = std::make_unique<Inamic>(x, y, tip, viataInamic);
+                    if (!inamic) {
+                        throw MemoryException("Crearea inamicului");
+                    }
+                    inamici.push_back(std::move(inamic));
+                    
+                } 
+                catch (const MemoryException& e) {
+                    ExceptionHandler::handleException(e);
+                    break;
+                }
+            }
+            
+            adaugaMesaj("Wave " + std::to_string(wave) + " a inceput cu " + 
+                       std::to_string(inamici.size()) + " inamici!");
+            
+        } 
+        catch (const InvalidWaveException& e) {
+            ExceptionHandler::handleException(e);
+            wave = std::max(1, std::min(wave, 20)); 
+            ExceptionHandler::logRecoveryAction(" " + std::to_string(wave));
+        } 
+        catch (const GameStateException& e) {
+            ExceptionHandler::handleException(e);
+            ExceptionHandler::logRecoveryAction("S-a redus spawn count-ul");
         }
     }
 
@@ -154,50 +194,68 @@ public:
     }
 
     void inputPlayer() {
-        if (!modPauza) {
-            std::cout << "\nComanda (W/A/S/D/F/E/Q/H/X): ";
-            std::cout.flush();
-            char comanda;
-            std::cin >> comanda;
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            ultimaComanda = std::tolower(comanda);
-            if (ultimaComanda == 'w') jucator.muta(0, -10);
-            else if (ultimaComanda == 's') jucator.muta(0, 10);
-            else if (ultimaComanda == 'a') jucator.muta(-10, 0);
-            else if (ultimaComanda == 'd') jucator.muta(10, 0);
-            else if (ultimaComanda == 'e') jucator.dodge();
-            else if (ultimaComanda == 'f') {
-                if (jucator.poateTrage()) {
-                    auto gl = jucator.creeazaProiectile();
-                    proiectileJucator.insert(proiectileJucator.end(), gl.begin(), gl.end());
-                    statistici["gloanteTrase"] += gl.size();
+        try {
+            if (!modPauza) {
+                std::cout << "\nComanda (W/A/S/D/F/E/Q/H/X): ";
+                std::cout.flush();
+                char comanda;
+                if (!(std::cin >> comanda)) {
+                    throw InputException("Failed to read input", "Command Input");
                 }
-            }
-            else if (ultimaComanda == 'q') {
-                modPauza = !modPauza;
-                if (modPauza) {
-                    adaugaMesaj("Joc în pauza. Apasă Q pentru a continua.");
-                } else {
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                ultimaComanda = std::tolower(comanda);
+                SAFE_EXECUTE({
+                    switch (ultimaComanda) {
+                        case 'w': jucator.muta(0, -10); break;
+                        case 's': jucator.muta(0, 10); break;
+                        case 'a': jucator.muta(-10, 0); break;
+                        case 'd': jucator.muta(10, 0); break;
+                        case 'e': jucator.dodge(); break;
+                        case 'f':
+                            if (jucator.poateTrage()) {
+                                auto gl = jucator.creeazaProiectile();
+                                proiectileJucator.insert(proiectileJucator.end(), gl.begin(), gl.end());
+                                statistici["gloanteTrase"] += gl.size();
+                            }
+                            break;
+                        case 'q':
+                            modPauza = !modPauza;
+                            adaugaMesaj(modPauza ? "Joc în pauza" : "Jocul continua!");
+                            break;
+                        case 'h':
+                            afisareControale();
+                            break;
+                        case 'x':
+                            jocActiv = false;
+                            adaugaMesaj("Iesire din joc...");
+                            break;
+                        default:
+                            throw InvalidCommandException(ultimaComanda);
+                    }
+                }, "Se proceseaza comanda jucatorului..");
+                
+            } 
+            else {
+                std::cout << "\nJoc in pauza. Apasa Q pentru a continua: ";
+                char cmd;
+                std::cin >> cmd;
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                if (std::tolower(cmd) == 'q') {
+                    modPauza = false;
                     adaugaMesaj("Jocul continua!");
                 }
             }
-            else if (ultimaComanda == 'h') {
-                afisareControale();
-            }
-            else if (ultimaComanda == 'x') {
-                jocActiv = false;
-                adaugaMesaj("Iesire din joc...");
-            }
-        } else {
-            std::cout << "\nJoc in pauza. Apasa Q pentru a continua: ";
-            std::cout.flush();
-            char cmd;
-            std::cin >> cmd;
+            
+        } 
+        catch (const InvalidCommandException& e) {
+            ExceptionHandler::handleException(e);
+            ExceptionHandler::logRecoveryAction("Se ignora comanda nevalida");
+        } 
+        catch (const InputException& e) {
+            ExceptionHandler::handleException(e);
+            ExceptionHandler::logRecoveryAction(" ");
+            std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            if (std::tolower(cmd) == 'q') {
-                modPauza = false;
-                adaugaMesaj("Jocul continua!");
-            }
         }
     }
 
@@ -494,20 +552,35 @@ public:
     }
     
     void ruleaza() {
-        while (jocActiv) {
-            inputPlayer();
-            if (!modPauza) 
-                actualizeaza();
-            afisareEcranJoc();
-            if (!jucator.eViu()) {
-                adaugaMesaj("AI PIERDUT... GAME OVER");
-                jocActiv = false;
+        try {
+            while (jocActiv && !criticalErrorOccurred) {
+                SAFE_EXECUTE({
+                    inputPlayer();
+                    if (!modPauza) 
+                        actualizeaza();
+                    afisareEcranJoc();
+                    if (!jucator.eViu()) {
+                        adaugaMesaj("AI PIERDUT... GAME OVER");
+                        jocActiv = false;
+                    }
+                    if (boss && boss->esteMort()) {
+                        adaugaMesaj("FELICITARI! L-AI INVINS PE AZOG!");
+                        jocActiv = false;
+                    }
+                    asteptare(delayActiune);
+                }, "Main game loop");
             }
-            if (boss && boss->esteMort()) {
-                adaugaMesaj("FELICITARI! L-AI INVINS PE AZOG, LORD OF DARKNESS ȘI AI SALVAT LUMEA!");
-                jocActiv = false;
-            }
-            asteptare(delayActiune);
+            
+        } 
+        catch (const CriticalGameException& e) {
+            criticalErrorOccurred = true;
+            ExceptionHandler::handleException(e);
+            std::cout << "\nA survenit o eroare critica. Jocul se va inchide..." << std::endl;
+        } 
+        catch (...) {
+            criticalErrorOccurred = true;
+            ExceptionHandler::handleUnknownException();
+            std::cout << "\nEroare necunoscuta. Jocul se va inchide..." << std::endl;
         }
         afisareFinal();
     }

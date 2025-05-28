@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include "GameException.h"
 #include <string>
 #include <memory>
 #include "Entitate.h"
@@ -27,7 +28,11 @@ private:
     int armaTimer = 0;
     
 public:
-    Jucator(float x, float y, int viata = 5) : Entitate(x, y, viata), cooldown(0), scor(0), nivel(1), experienta(0), reloadTime(0) {}
+    Jucator(float x, float y, int viata = 5) : Entitate(x, y, viata), cooldown(0), scor(0), nivel(1), experienta(0), reloadTime(0) {
+        if (viata <= 0) {
+            throw EntityException("Player cannot be created with non-positive health", "Jucator");
+        }
+    }
 
     Jucator(const Jucator& other) : Entitate(other.pozitie.getX(), other.pozitie.getY(), other.viata),
         cooldown(other.cooldown), scor(other.scor), nivel(other.nivel),
@@ -41,7 +46,16 @@ public:
     }
     
     void muta(float dx, float dy) {
-        pozitie.miscari(dx, dy);
+        try {
+            if (esteMort()) {
+                throw DeadEntityException("movement", "Jucator");
+            }
+            pozitie.miscari(dx, dy);
+        } 
+        catch (const DeadEntityException& e) {
+            ExceptionHandler::handleException(e);
+            ExceptionHandler::logRecoveryAction("Ignora comanda unui jucator mort");
+        }
     }
   
     virtual void actualiz(const Pozitie&) override {
@@ -61,9 +75,27 @@ public:
     }
     
     virtual void primesteDamage(int damage) override {
-        if (cooldown == 0 && viata > 0) {
-            viata -= damage;
-            cooldown = 3;
+        try {
+            if (damage < 0) {
+                throw CombatException("Damage negativ", "Player Damage");
+            }
+            
+            if (esteMort()) {
+                throw DeadEntityException("damage application", "Jucator");
+            }
+            
+            if (cooldown == 0 && viata > 0) {
+                viata -= damage;
+                cooldown = 3;
+                
+                if (viata < 0) viata = 0;
+            }
+        } 
+        catch (const CombatException& e) {
+            ExceptionHandler::handleException(e);
+        } 
+        catch (const DeadEntityException& e) {
+            ExceptionHandler::handleException(e);
         }
     }
     
@@ -100,17 +132,41 @@ public:
     }
     
     void adaugaItem(const std::string& item) {
-        inventar.push_back(item);
-        if (item == "Viata") viata++;
-        else if (item == "Scut") cooldown += 3;
-        else if (item == "RapidFire") rapidFire = 10;
-        else if (item == "Shotgun") {
-            armaCurenta = SHOTGUN;
-            armaTimer = 10;
-        }
-        else if (item == "Bazooka") {
-            armaCurenta = BAZOOKA;
-            armaTimer = 10;
+        try {
+            if (item.empty()) {
+                throw PowerupException("", "Empty powerup");
+            }
+            std::vector<std::string> validTypes = {"Viata", "Scut", "RapidFire", "Shotgun", "Bazooka"};
+            bool valid = false;
+            for (const auto& type : validTypes) {
+                if (item == type) {
+                    valid = true;
+                    break;
+                }
+            }
+            
+            if (!valid) {
+                throw PowerupException(item, "Powerup necunoscut");
+            }
+            inventar.push_back(item);
+            SAFE_EXECUTE({
+                if (item == "Viata") viata++;
+                else if (item == "Scut") cooldown += 3;
+                else if (item == "RapidFire") rapidFire = 10;
+                else if (item == "Shotgun") {
+                    armaCurenta = SHOTGUN;
+                    armaTimer = 10;
+                }
+                else if (item == "Bazooka") {
+                    armaCurenta = BAZOOKA;
+                    armaTimer = 10;
+                }
+            }, "Se aplica powerup-ul..");
+            
+        } 
+        catch (const PowerupException& e) {
+            ExceptionHandler::handleException(e);
+            ExceptionHandler::logRecoveryAction("Ignora powerup nevalid: " + item);
         }
     }
     
@@ -130,16 +186,34 @@ public:
     
     std::vector<Proiectil> creeazaProiectile() {
         std::vector<Proiectil> gloante;
-        if (armaCurenta == NORMAL) {
+        try {
+            if (esteMort()) {
+                throw DeadEntityException("projectile creation", "Jucator");
+            }
+            switch (armaCurenta) {
+                case NORMAL:
+                    gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0, false);
+                    break;
+                case SHOTGUN:
+                    gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.1f, false);
+                    gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, -0.1f, false);
+                    gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.0f, false);
+                    break;
+                case BAZOOKA:
+                    gloante.emplace_back(pozitie.getX(), pozitie.getY(), 0.7f, 0, true);
+                    break;
+                default:
+                    throw WeaponException("Unknown", "Arma invalida");
+            }
+        } 
+        catch (const DeadEntityException& e) {
+            ExceptionHandler::handleException(e);
+            return {}; 
+        } 
+        catch (const WeaponException& e) {
+            ExceptionHandler::handleException(e);
             gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0, false);
-        }
-        else if (armaCurenta == SHOTGUN) {
-            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.1f, false);
-            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, -0.1f, false);
-            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 1, 0.0f, false);
-        }
-        else if (armaCurenta == BAZOOKA) {
-            gloante.emplace_back(pozitie.getX(), pozitie.getY(), 0.7f, 0, true);
+            ExceptionHandler::logRecoveryAction("Arma normala");
         }
         return gloante;
     }
